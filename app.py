@@ -9,8 +9,11 @@ app.secret_key = b'\x9dGP\x1dq\xec=\x05_\xfd=(\xd3q"a'
 
 @app.route('/')
 def index():
-    print(session['userData'])
-    return render_template('index.html', userdata = session['userData'])
+    if 'userData' in session:
+        userdata = session['userData']
+    else:
+        userdata = {}
+    return render_template('index.html', userdata = userdata)
 
 @app.route('/login')
 def login():
