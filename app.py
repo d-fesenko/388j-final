@@ -26,7 +26,9 @@ login_manager.init_app(app)
 @app.route('/')
 def index():
     if current_user.is_authenticated:
-        print(current_user)
+        print("authenticated")
+    else:
+        print("not authenticated")
     return render_template('index.html', userdata = {})
 
 @app.route('/login')
@@ -73,11 +75,19 @@ def process_openid():
             if api_response.get('response') and api_response['response'].get('players'):
                 userData = api_response['response']['players'][0]
 
-                user = User(steamid=userData['steamid'], name=userData['personaname'], avatar=userData['avatarmedium'])
-                user.save() 
-                login_user(user)
+                
 
+                existing_user = User.objects(steamid=userData['steamid']).first()
+                if existing_user:
+                    #If user alr exists we don't need to keep adding duplicates, so just login
+                    login_user(existing_user)
+                else:
+                    # No user exists, create new user
+                    new_user = User(steamid=userData['steamid'], name=userData['personaname'], avatar=userData['avatarmedium'])
+                    new_user.save() 
+                    login_user(new_user)
                 return redirect(url_for('index'))
+            
     return "Error: Unable to validate your request" #This should prolly never happen
 
 @login_manager.user_loader
