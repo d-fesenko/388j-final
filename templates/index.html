@@ -1,9 +1,8 @@
 <html>
 <body>
-    {% if steam_id %}
-        Logged in as Steam ID: {{ steam_id }}
+    {% if 'name' in userdata %}
+        Logged in as: {{ userdata['name'] }}
         <br>
-        <a href="/logout">Logout</a>
     {% else %}
         <a href="/login">Login with Steam</a>
     {% endif %}
