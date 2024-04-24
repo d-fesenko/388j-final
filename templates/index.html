@@ -1,12 +1,14 @@
-<html>
-<body>
-    {% if 'name' in userdata %}
-        Logged in as: {{ userdata['name'] }}
-        <br>
-    {% else %}
-        <a href="/login">Login with Steam</a>
-    {% endif %}
-        <br>
-        <a href="/logout">Log out</a>
-</body>
-</html>
+{% extends "header.html" %} {% block content %}
+<div class="main-container">
+  <div class="decoration-main-container"><div class="decoration-main"></div></div>
+  <h2 class="font-extrabold text-white text-xl main-title"> Search users </h2>
+  <form class="searchbar" action="/" method="POST">
+    {{ form.csrf_token }}
+    {{ form.search_query(class="form-control", placeholder="Display Name") }}
+
+    
+    <div class="text-white">{{ form.submit(class="form-button") }}</div>
+    
+  </form>
+</div>
+{% endblock %}

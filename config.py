@@ -1,4 +1,4 @@
 STEAM_API_KEY = "DD024EB436F20290A956A05B341F9326"
 STEAM_ACCESS_TOKEN = "eyAidHlwIjogIkpXVCIsICJhbGciOiAiRWREU0EiIH0.eyAiaXNzIjogInI6MEVCRl8yNDExNEQxMl9DOUFGMCIsICJzdWIiOiAiNzY1NjExOTgwOTA2MDU5NjUiLCAiYXVkIjogWyAid2ViOmNvbW11bml0eSIgXSwgImV4cCI6IDE3MTQwMDU2MzksICJuYmYiOiAxNzA1Mjc4NzcyLCAiaWF0IjogMTcxMzkxODc3MiwgImp0aSI6ICIwRUVFXzI0NTFEOENCXzg3MzQwIiwgIm9hdCI6IDE3MTAxOTIxMDUsICJydF9leHAiOiAxNzI4Mzg3MzA3LCAicGVyIjogMCwgImlwX3N1YmplY3QiOiAiMTI5LjIuMTkyLjQiLCAiaXBfY29uZmlybWVyIjogIjEyOS4yLjE5Mi44MSIgfQ.z5DGNHi-RWYyvsoxxSgGESstr-tqPInOOEv0CadCTxO4-pkZVVEDn_rW66QWzRfQ2jkCWR63GSSBiB2NjhNXCA"
 SECRET_KEY = b'\x9dGP\x1dq\xec=\x05_\xfd=(\xd3q"a'
-MONGODB_HOST = 'mongodb+srv://dfesenko:<password>@cluster0.ac3iyvb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'
+MONGODB_HOST = 'mongodb+srv://dfesenko:daniel2004@cluster0.ac3iyvb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'

@@ -1,0 +1,17 @@
+{% extends "base.html" %} {% block header %}
+<nav class="bg-slate-800 navbar flex w-full justify-between z-40">
+    <a class="m-5 navlink" href="{{ url_for('index') }}">
+        <span class="font-extrabold text-white hidden sm:block">Home</span>
+    </a>
+    {% if current_user.is_authenticated %}
+    <div class="flex">
+        <a class="font-bold text-white my-5 mr-5 ml-0 navlink" href="{{ url_for('account') }}">Account</a>
+        <a class="font-bold my-5 mr-5 ml-0 navlink !bg-red-400/20 hover:!bg-red-500/50 !text-red-400 hover:!text-red-300" href="{{ url_for('logout') }}">Logout</a>
+    </div>
+    {% else %}
+    <div class="flex">
+        <a class="font-bold text-white my-5 mr-5 ml-0 navlink" href="{{ url_for('login') }}">Login</a>
+    </div>
+    {% endif %}
+</nav>
+{% block content %}{% endblock %}{% endblock %}

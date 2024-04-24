@@ -5,7 +5,10 @@ from flask_mongoengine import MongoEngine
 import requests
 import re
 from urllib.parse import urlencode
-from config import STEAM_API_KEY
+from config import STEAM_API_KEY, SECRET_KEY, MONGODB_HOST
+from forms import SearchForm
+from client import SteamProfileClient
+
 
 db = MongoEngine()
 login_manager = LoginManager()
@@ -13,23 +16,44 @@ login_manager = LoginManager()
 
 app = Flask(__name__)
 
-app.config['SECRET_KEY'] = b'\x9dGP\x1dq\xec=\x05_\xfd=(\xd3q"a'
-app.config['MONGODB_HOST'] = 'mongodb+srv://dfesenko:daniel2004@cluster0.ac3iyvb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'
+app.config['SECRET_KEY'] = SECRET_KEY
+app.config['MONGODB_HOST'] = MONGODB_HOST
 
     
 db.init_app(app)
 login_manager.init_app(app)
 
+class User(db.Document, UserMixin):
+    steamid = db.StringField(required = True)
+    name = db.StringField(required = True)
+    avatar = db.StringField(required = True) #The URL for the avatar image, not the image itself
+
+    # Implement the get_id method required by Flask-Login
+    def get_id(self):
+        return str(self.id)
+
+client = SteamProfileClient(db, User.objects())
 
 
-
-@app.route('/')
+@app.route('/', methods=["GET", "POST"])
 def index():
-    if current_user.is_authenticated:
-        print("authenticated")
-    else:
-        print("not authenticated")
-    return render_template('index.html', userdata = {})
+    form = SearchForm()
+    if form.validate_on_submit():
+        return redirect(url_for("query_results", query=form.search_query.data))
+
+    return render_template("index.html", form=form)
+
+
+@app.route("/search-results/<query>", methods=["GET"])
+def query_results(query):
+    print("Query: ", query)
+    try:
+        results = client.search(query)
+    except ValueError as e:
+        return render_template("query.html", error_msg=str(e))
+
+    print(results)
+    return render_template("query.html", results=results)
 
 @app.route('/login')
 def login():
@@ -51,6 +75,10 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for('index'))
+
+@app.route('/account')
+def account():
+    return "account page :P"
 
 @app.route('/process-openid')
 def process_openid():
@@ -93,12 +121,3 @@ def process_openid():
 @login_manager.user_loader
 def load_user(user_id):
     return User.objects(pk=user_id).first()
-
-class User(db.Document, UserMixin):
-    steamid = db.StringField(required = True)
-    name = db.StringField(required = True)
-    avatar = db.StringField(required = True) #The URL for the avatar image, not the image itself
-
-    # Implement the get_id method required by Flask-Login
-    def get_id(self):
-        return str(self.id)

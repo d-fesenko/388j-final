@@ -1,0 +1,22 @@
+<html lang="en" class="bg-slate-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link
+      rel="stylesheet"
+      href="{{url_for('static',filename='compiled.css')}}"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    {% if title %}
+        <title>{{ title }}</title>
+    {% else %}
+        <title>Steam DB</title>
+    {% endif %}
+</head>
+<body>
+    {% block header %}
+    <h1>Overrideable Content</h1>
+    {% endblock %}
+</body>
+</html>
