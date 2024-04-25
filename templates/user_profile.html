@@ -1,0 +1,41 @@
+{% extends "header.html" %} {% block content %}
+
+{% if user['profile_background'] %}
+<style>
+  body {
+      background-image: url("{{user['profile_background']}}");
+      background-position: top center; /* Ensures the image is aligned to the top and centered horizontally */
+      background-repeat: no-repeat; /* Prevents the background image from repeating */
+  }
+</style>
+
+{% endif %}
+
+<div class="max-w-sm mx-auto bg-slate-800 rounded-lg overflow-hidden shadow-lg my-5">
+  <div class="flex flex-col items-center justify-center p-5">
+<img src="{{ user['avatar'] }}" class="w-48 h-48 object-cover" alt="Profile Pic">
+<p class="text-2xl font-extrabold text-white">{{ user['name'] }}</p>
+</div>
+</div>
+
+
+
+<div class="results-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  <div class="decoration-container">
+    <div class="decoration"></div>
+  </div>
+  {% for game in sorted_games %}
+    <div class="bg-slate-800 rounded-lg overflow-hidden shadow-lg my-5">
+      <div class="flex items-center justify-start p-5 space-x-4">
+        <img src="{{ game['img_icon'] }}" class="w-16 h-16 object-cover rounded-full" alt="Game Icon">
+        <div class="flex flex-col justify-center">
+          <p class="text-white text-lg font-extrabold">{{ game['name'] }}</p>
+          <p class="text-white text-sm font-semibold">Playtime: {{ game['playtime_hours'] }} hours</p>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+
+{% endblock %}

@@ -9,6 +9,8 @@ from config import STEAM_API_KEY, SECRET_KEY, MONGODB_HOST
 from forms import SearchForm
 from client import SteamProfileClient
 
+from utils import get_steam_games, get_profile_background
+
 
 db = MongoEngine()
 login_manager = LoginManager()
@@ -27,6 +29,8 @@ class User(db.Document, UserMixin):
     steamid = db.StringField(required = True)
     name = db.StringField(required = True)
     avatar = db.StringField(required = True) #The URL for the avatar image, not the image itself
+    games = db.ListField(required = True)
+    profile_background = db.StringField()
 
     # Implement the get_id method required by Flask-Login
     def get_id(self):
@@ -46,13 +50,7 @@ def index():
 
 @app.route("/search-results/<query>", methods=["GET"])
 def query_results(query):
-    print("Query: ", query)
-    try:
-        results = client.search(query)
-    except ValueError as e:
-        return render_template("query.html", error_msg=str(e))
-
-    print(results)
+    results = client.search(query)
     return render_template("query.html", results=results)
 
 @app.route('/login')
@@ -80,6 +78,12 @@ def logout():
 def account():
     return "account page :P"
 
+@app.route("/user/<steamid>")
+def userprofile(steamid):
+    user = User.objects(steamid=steamid).first() 
+    sorted_games = sorted(user.games, key=lambda game: int(game['playtime_hours']), reverse=True)
+    return render_template('user_profile.html', user=user, sorted_games=sorted_games)
+
 @app.route('/process-openid')
 def process_openid():
     # Extract the necessary parameters from query string
@@ -103,15 +107,21 @@ def process_openid():
             if api_response.get('response') and api_response['response'].get('players'):
                 userData = api_response['response']['players'][0]
 
-                
+                games = get_steam_games(STEAM_API_KEY, userData['steamid'])
+                profile_background = get_profile_background(STEAM_API_KEY, userData['steamid'])
 
                 existing_user = User.objects(steamid=userData['steamid']).first()
                 if existing_user:
-                    #If user alr exists we don't need to keep adding duplicates, so just login
+                    existing_user.name = userData['personaname']
+                    existing_user.avatar = userData['avatarfull']
+                    existing_user.games = games
+                    existing_user.profile_background = profile_background
+                    existing_user.save()
                     login_user(existing_user)
                 else:
                     # No user exists, create new user
-                    new_user = User(steamid=userData['steamid'], name=userData['personaname'], avatar=userData['avatarmedium'])
+                    
+                    new_user = User(steamid=userData['steamid'], name=userData['personaname'], avatar=userData['avatarmedium'], games=games, profile_background = profile_background)
                     new_user.save() 
                     login_user(new_user)
                 return redirect(url_for('index'))
