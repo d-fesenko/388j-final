@@ -9,7 +9,7 @@ from config import STEAM_API_KEY, SECRET_KEY, MONGODB_HOST
 from forms import SearchForm
 from client import SteamProfileClient
 
-from utils import get_steam_games, get_profile_background
+from utils import get_steam_games, get_profile_background, get_steam_level
 
 
 db = MongoEngine()
@@ -29,8 +29,10 @@ class User(db.Document, UserMixin):
     steamid = db.StringField(required = True)
     name = db.StringField(required = True)
     avatar = db.StringField(required = True) #The URL for the avatar image, not the image itself
-    games = db.ListField(required = True)
+    level = db.StringField(required = True)
+    games = db.ListField()
     profile_background = db.StringField()
+    preferences = db.ListField()
 
     # Implement the get_id method required by Flask-Login
     def get_id(self):
@@ -76,10 +78,18 @@ def logout():
 
 @app.route('/account')
 def account():
-    return "account page :P"
+    if current_user.is_authenticated:
+        user = current_user
+        sorted_games = sorted(user.games, key=lambda game: int(game['playtime_hours']), reverse=True)
+        return render_template('account.html', user=user, sorted_games=sorted_games)
+    else:
+        return redirect(url_for('login'))
+
 
 @app.route("/user/<steamid>")
 def userprofile(steamid):
+    if steamid == current_user['steamid']:
+        return redirect(url_for('account'))
     user = User.objects(steamid=steamid).first() 
     sorted_games = sorted(user.games, key=lambda game: int(game['playtime_hours']), reverse=True)
     return render_template('user_profile.html', user=user, sorted_games=sorted_games)
@@ -109,6 +119,7 @@ def process_openid():
 
                 games = get_steam_games(STEAM_API_KEY, userData['steamid'])
                 profile_background = get_profile_background(STEAM_API_KEY, userData['steamid'])
+                level = get_steam_level(STEAM_API_KEY, userData['steamid'])
 
                 existing_user = User.objects(steamid=userData['steamid']).first()
                 if existing_user:
@@ -116,12 +127,13 @@ def process_openid():
                     existing_user.avatar = userData['avatarfull']
                     existing_user.games = games
                     existing_user.profile_background = profile_background
+                    existing_user.level = level
                     existing_user.save()
                     login_user(existing_user)
                 else:
                     # No user exists, create new user
                     
-                    new_user = User(steamid=userData['steamid'], name=userData['personaname'], avatar=userData['avatarmedium'], games=games, profile_background = profile_background)
+                    new_user = User(steamid=userData['steamid'], name=userData['personaname'], avatar=userData['avatarmedium'], games=games, profile_background = profile_background, level=level)
                     new_user.save() 
                     login_user(new_user)
                 return redirect(url_for('index'))
