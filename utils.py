@@ -1,8 +1,8 @@
 import requests
 from math import ceil
 
-def get_profile_background(api_key, steam_id):
-    url = "https://api.steampowered.com/IPlayerService/GetProfileBackground/v1/"
+def get_items_equipped(api_key, steam_id):
+    url = "https://api.steampowered.com/IPlayerService/GetProfileItemsEquipped/v1/"
     params ={
         'key': api_key,
         'steamid': steam_id
@@ -10,9 +10,17 @@ def get_profile_background(api_key, steam_id):
 
     response = requests.get(url, params=params)
     data = response.json()
-    imageurl = data.get('response', {}).get('profile_background', {}).get('image_large', "")
+    backgroundurl = data.get('response', {}).get('profile_background', {}).get('image_large', "")
+    avatarframeurl = data.get('response', {}).get('avatar_frame', {}).get('image_small', "")
 
-    return f"http://media.steampowered.com/steamcommunity/public/images/{imageurl}"
+    profilebackground =  f"http://media.steampowered.com/steamcommunity/public/images/{backgroundurl}"
+    avatarframe = f"https://cdn.akamai.steamstatic.com/steamcommunity/public/images/{avatarframeurl}"
+
+    return {
+        "profilebackground": profilebackground,
+        "avatarframe": avatarframe
+    }
+
 
 def get_steam_games(api_key, steam_id):
     url = "http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/"

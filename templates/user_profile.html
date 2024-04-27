@@ -16,7 +16,19 @@
 
   <!-- User Info Container -->
   <div class="flex flex-col items-center justify-center p-5" style="width:400px;">
-    <img src="{{ user['avatar'] }}" class="w-48 h-48 object-cover" alt="Avatar">
+    <div class="flex items-center justify-center relative w-48 h-48 {% if user['avatar_frame']  %} mb-3 {% endif %}">
+      <!-- Avatar image -->
+      <img src="{{ user['avatar'] }}" class="absolute w-full h-full object-cover" alt="Avatar">
+      
+      <!-- Avatar frame, conditionally displayed if exists -->
+      {% if user['avatar_frame'] %}
+      <img src="{{ user['avatar_frame'] }}" class="absolute w-full h-full object-cover scale-125" alt="Avatar Frame">
+      {% endif %}
+  </div>
+  
+  
+  
+  
     <p class="text-2xl font-extrabold text-white mb-1 text-center">{{ user['name'] }}</p>
     <p class="text-lg mb-2 text-white font-thin">Level
       <span class="
@@ -41,10 +53,11 @@
   <div>
   <p class="text-2xl font-extrabold text-white pb-2">{{ user['name'] }}'s Game Library</p>
   <!-- Games List Container -->
-  <div class="results-container flex flex-col overflow-y-auto mr-10" style="max-height: 500px; width: 700px;">
+  <div class="results-container flex flex-col overflow-y-auto mr-10 bg-gray-300 rounded-xl bg-opacity-10 h-lvh pl-5 mb-5" style="max-height: 500px; width: 700px;">
     
+    {% if sorted_games %}
     {% for game in sorted_games %}
-    <a href="https://store.steampowered.com/app/{{ game['appid'] }}">
+    <a href="https://store.steampowered.com/app/{{ game['appid'] }}" target="_blank">
       <div class="bg-gradient-to-t from-slate-800 to-slate-700 rounded-lg overflow-hidden shadow-lg my-1 hover:scale-95 transition-transform duration-3000"
        style="transition: transform 0.3s ease; width: 97%;">
         <div class="flex items-center justify-start p-5 space-x-4">
@@ -58,6 +71,11 @@
       </div>
     </a>
     {% endfor %}
+    {% else %}
+    <div class="flex flex-col items-center justify-center text-gray-300 h-lvh">
+    <p>User's game library is private</p>
+    </div>
+    {% endif %}
   </div>
 </div>
 
