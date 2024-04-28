@@ -2,6 +2,24 @@
 {% block content %}
 
 {% if user['profile_background'] %}
+{% if user['is_background_animated'] %}
+<video autoplay loop muted id="video-background" class="-z-10 bg-fixed">
+  <source src="{{ user['profile_background'] }}" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
+<style>
+  #video-background {
+    position: fixed;  /* Make the video stay in place even while scrolling */
+    top: 0;
+    left: 0;
+    width: 100vw;     /* Cover the full viewport width */
+    height: 100vh;    /* Cover the full viewport height */
+    object-fit: cover;
+    z-index: -1;      /* Keep the video behind other content */
+}
+</style>
+{% else %}
 <style>
   body {
       background-image: url("{{user['profile_background']}}");
@@ -9,6 +27,7 @@
       background-repeat: no-repeat; /* Prevents the background image from repeating */
   }
 </style>
+{% endif %}
 {% endif %}
 
 <body class="pb-8">
@@ -48,6 +67,17 @@
       </span>
   </p>
     <p class="text-xs text-gray-400">ID: {{ user['steamid'] }}</p>
+
+    {% if has_favorites %}
+    <p class="text-lg text-white font-semibold mt-5">Favorite Games</p>
+    <div class="bg-slate-500 rounded-xl grid grid-cols-8 gap-1">
+      {% for game in sorted_games %}
+      {% if game['is_favorite'] %}
+      <img src="{{ game['img_icon'] }}" class="rounded-full m-1">
+      {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
   </div>
 
   <div>

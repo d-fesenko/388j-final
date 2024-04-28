@@ -113,7 +113,12 @@ def userprofile(steamid):
         return redirect(url_for('account'))
     user = User.objects(steamid=steamid).first() 
     sorted_games = sorted(user.games, key=lambda game: int(game['playtime_hours']), reverse=True)
-    return render_template('user_profile.html', user=user, sorted_games=sorted_games)
+    has_favorites = False
+    for game in sorted_games:
+        if game['is_favorite']:
+            has_favorites = True
+            break
+    return render_template('user_profile.html', user=user, sorted_games=sorted_games, has_favorites = has_favorites)
 
 @app.route('/process-openid')
 def process_openid():
