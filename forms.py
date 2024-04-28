@@ -30,3 +30,11 @@ class PreferencesForm(FlaskForm):
 
     submit = SubmitField("Save Changes")
 
+class FavoritesForm(FlaskForm):
+    submit = SubmitField('Update Favorites')
+
+def create_favorites_form(games_list):
+    for game in games_list:
+        setattr(FavoritesForm, str(game['appid']), BooleanField(default=game['is_favorite']))
+    return FavoritesForm()
+

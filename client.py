@@ -5,7 +5,7 @@ class SteamProfileClient(object):
     def __init__(self, db, users):
         self.sess = requests.Session()
         self.db = db
-        self.users = users  # Assuming this is a MongoEngine model class for user profiles
+        self.users = users 
 
     def search(self, search_string):
         """

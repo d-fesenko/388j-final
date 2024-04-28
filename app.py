@@ -1,4 +1,4 @@
-from flask import Flask, url_for, session, request, redirect, jsonify, render_template
+from flask import Flask, url_for, session, request, redirect, jsonify, render_template, flash
 from flask_login import current_user, login_required, login_user, logout_user, LoginManager
 from flask_login import UserMixin
 from flask_mongoengine import MongoEngine
@@ -6,7 +6,7 @@ import requests
 import re
 from urllib.parse import urlencode
 from config import STEAM_API_KEY, SECRET_KEY, MONGODB_HOST
-from forms import SearchForm
+from forms import SearchForm, FavoritesForm, create_favorites_form
 from client import SteamProfileClient
 
 from utils import get_steam_games, get_items_equipped, get_steam_level
@@ -31,6 +31,7 @@ class User(db.Document, UserMixin):
     avatar = db.StringField(required = True)
     avatar_frame = db.StringField()
     profile_background = db.StringField()
+    is_background_animated = db.BooleanField()
     level = db.StringField()
     games = db.ListField()
     preferences = db.ListField()
@@ -78,12 +79,30 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
-@app.route('/account')
+@app.route('/account', methods=['GET', 'POST'])
 def account():
     if current_user.is_authenticated:
+
         user = current_user
         sorted_games = sorted(user.games, key=lambda game: int(game['playtime_hours']), reverse=True)
-        return render_template('account.html', user=user, sorted_games=sorted_games)
+
+        form = create_favorites_form(sorted_games)
+
+
+        if form.validate_on_submit():
+            for game in user.games:
+                field_name = str(game['appid'])
+                favorite_field = getattr(form, field_name)
+                if favorite_field.data:
+                    game['is_favorite'] = True
+                else:
+                    game['is_favorite'] = False
+            
+            current_user.save()
+
+            flash('Favorites updated!')
+
+        return render_template('account.html', user=user, sorted_games=sorted_games, form=form)
     else:
         return redirect(url_for('login'))
 
@@ -122,6 +141,7 @@ def process_openid():
                 games = get_steam_games(STEAM_API_KEY, userData['steamid'])
                 items = get_items_equipped(STEAM_API_KEY, userData['steamid'])
                 profile_background = items['profilebackground']
+                is_background_animated = items['isbackgroundanimated']
                 avatar_frame = items['avatarframe']
                 level = get_steam_level(STEAM_API_KEY, userData['steamid'])
 
@@ -131,6 +151,7 @@ def process_openid():
                     existing_user.avatar = userData['avatarfull']
                     existing_user.games = games
                     existing_user.profile_background = profile_background
+                    existing_user.is_background_animated = is_background_animated
                     existing_user.avatar_frame = avatar_frame
                     existing_user.level = level
                     existing_user.save()
@@ -138,7 +159,16 @@ def process_openid():
                 else:
                     # No user exists, create new user
                     
-                    new_user = User(steamid=userData['steamid'], name=userData['personaname'], avatar=userData['avatarmedium'], games=games, profile_background = profile_background, level=level, avatar_frame=avatar_frame)
+                    new_user = User(
+                        steamid=userData['steamid'], 
+                        name=userData['personaname'], 
+                        avatar=userData['avatarmedium'], 
+                        games=games, 
+                        profile_background = profile_background, 
+                        is_background_animated = is_background_animated, 
+                        level=level, 
+                        avatar_frame=avatar_frame)
+                    
                     new_user.save() 
                     login_user(new_user)
                 return redirect(url_for('index'))

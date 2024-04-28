@@ -10,13 +10,22 @@ def get_items_equipped(api_key, steam_id):
 
     response = requests.get(url, params=params)
     data = response.json()
-    backgroundurl = data.get('response', {}).get('profile_background', {}).get('image_large', "")
+    isbackgroundanimated = True
+    backgroundurl = data.get('response', {}).get('profile_background', {}).get('movie_mp4', "")
+    if backgroundurl == "":
+        isbackgroundanimated = False
+        backgroundurl = data.get('response', {}).get('profile_background', {}).get('image_large', "")
+        profilebackground =  f"http://media.steampowered.com/steamcommunity/public/images/{backgroundurl}"
+    else:
+        profilebackground =  f"https://cdn.akamai.steamstatic.com/steamcommunity/public/images/{backgroundurl}"
+
     avatarframeurl = data.get('response', {}).get('avatar_frame', {}).get('image_small', "")
 
-    profilebackground =  f"http://media.steampowered.com/steamcommunity/public/images/{backgroundurl}"
+    
     avatarframe = f"https://cdn.akamai.steamstatic.com/steamcommunity/public/images/{avatarframeurl}"
 
     return {
+        "isbackgroundanimated": isbackgroundanimated,
         "profilebackground": profilebackground,
         "avatarframe": avatarframe
     }
@@ -49,7 +58,8 @@ def get_steam_games(api_key, steam_id):
             'playtime_hours': playtime_hours,
             'img_icon': img_icon_url,
             'appid': appid,
-            'description': description
+            'description': description,
+            'is_favorite': False
         })
         
     return games_details

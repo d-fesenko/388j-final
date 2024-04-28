@@ -2,6 +2,24 @@
 {% block content %}
 
 {% if user['profile_background'] %}
+{% if user['is_background_animated'] %}
+<video autoplay loop muted id="video-background" class="-z-10 bg-fixed">
+  <source src="{{ user['profile_background'] }}" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
+<style>
+  #video-background {
+    position: fixed;  /* Make the video stay in place even while scrolling */
+    top: 0;
+    left: 0;
+    width: 100vw;     /* Cover the full viewport width */
+    height: 100vh;    /* Cover the full viewport height */
+    object-fit: cover;
+    z-index: -1;      /* Keep the video behind other content */
+}
+</style>
+{% else %}
 <style>
   body {
       background-image: url("{{user['profile_background']}}");
@@ -9,6 +27,7 @@
       background-repeat: no-repeat; /* Prevents the background image from repeating */
   }
 </style>
+{% endif %}
 {% endif %}
 
 <body class="pb-8">
@@ -51,14 +70,55 @@
   </div>
 
   <div>
-  <p class="text-2xl font-extrabold text-white pb-2">Your Game Library</p>
+    <form method="POST" action="{{ url_for('account') }}">
+      {{ form.hidden_tag() }}
+      {{ form.csrf_token }}
+
+      <div class="flex items-center"> <!-- Flex container with alignment -->
+        <p class="text-2xl font-extrabold text-white pb-2 mr-5">Your Game Library</p>
+        {{ form.submit(class="btn bg-green-500 hover:bg-green-600 rounded-lg text-white px-2 hidden", id="updatebutton") }}
+      
+      </div>
+      
   <!-- Games List Container -->
   <div class="results-container flex flex-col overflow-y-auto mr-10 bg-gray-300 rounded-xl bg-opacity-10 h-lvh pl-5 mb-5" style="max-height: 500px; width: 700px;">
     
     {% if sorted_games %}
+
+    <style>
+
+      input[type="checkbox"]:checked + label .emptystar {
+        display: none
+      }
+
+      input[type="checkbox"]:checked + label .fullstar {
+        display: block
+      }
+
+      input[type="checkbox"] {
+        display: none
+      }
+
+
+  </style>
+
+  <script>
+
+    function enableupdatebutton() {
+      document.getElementById("updatebutton").style.display = "block";
+    }
+
+  </script>
     {% for game in sorted_games %}
+    <div class="flex flex-row items-center">
+      {{ form['' ~ game['appid']] }}
+      <label for="{{ game['appid'] }}">
+        <i class="fa-regular fa-star fa-1.5x emptystar text-gray-500 hover:text-yellow-500" onclick="enableupdatebutton()"></i>
+        <i class="fa-solid fa-star fa-1.5x fullstar text-yellow-500 hover:text-yellow-600 hidden" onclick="enableupdatebutton()"></i>
+      </label>
+
     <a href="https://store.steampowered.com/app/{{ game['appid'] }}" target="_blank">
-      <div class="bg-gradient-to-t from-slate-800 to-slate-700 rounded-lg overflow-hidden shadow-lg my-1 hover:scale-95 transition-transform duration-3000"
+      <div class="bg-gradient-to-t from-slate-800 to-slate-700 rounded-lg overflow-hidden shadow-lg my-1 ml-2 hover:scale-95 transition-transform duration-3000"
        style="transition: transform 0.3s ease; width: 97%;">
         <div class="flex items-center justify-start p-5 space-x-4">
           <img src="https://cdn.akamai.steamstatic.com/steam/apps/{{game['appid']}}/capsule_184x69.jpg" class="h-10 object-cover" alt="Game Icon">
@@ -70,6 +130,7 @@
         </div>
       </div>
     </a>
+  </div>
     {% endfor %}
     {% else %}
     <div class="flex flex-col items-center justify-center text-gray-300 h-lvh">
@@ -80,6 +141,7 @@
     {% endif %}
   </div>
 </div>
+</form>
 
 </div>
 </body>
