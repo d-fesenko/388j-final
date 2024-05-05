@@ -1,7 +1,7 @@
 from ast import Pass
 from flask_login import current_user
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField
+from wtforms import StringField, PasswordField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired
 from flask_wtf.file import FileField, FileRequired, FileAllowed
 from werkzeug.utils import secure_filename
@@ -13,6 +13,11 @@ from wtforms.validators import (
     ValidationError,
 )
 
+class UserReviewForm(FlaskForm):
+    text = TextAreaField(
+        "Review", validators=[InputRequired(), Length(min=5, max=500)]
+    )
+    submit = SubmitField("Enter Review")
 
 
 class SearchForm(FlaskForm):

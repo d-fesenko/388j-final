@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import Flask, url_for, session, request, redirect, jsonify, render_template, flash
 from flask_login import current_user, login_required, login_user, logout_user, LoginManager
 from flask_login import UserMixin
@@ -6,7 +7,7 @@ import requests
 import re
 from urllib.parse import urlencode
 from config import STEAM_API_KEY, SECRET_KEY, MONGODB_HOST
-from forms import SearchForm, FavoritesForm, create_favorites_form
+from forms import SearchForm, FavoritesForm, create_favorites_form, UserReviewForm
 from client import SteamProfileClient
 
 from utils import get_steam_games, get_items_equipped, get_steam_level
@@ -39,6 +40,12 @@ class User(db.Document, UserMixin):
     # Implement the get_id method required by Flask-Login
     def get_id(self):
         return str(self.id)
+    
+class Review(db.Document):
+    commenter = db.ReferenceField(User, required=True)
+    reviewee = db.ReferenceField(User, required=True)
+    content = db.StringField(required=True, min_length=5, max_length=500)
+    date = db.StringField(default=datetime)
 
 client = SteamProfileClient(db, User.objects())
 
@@ -53,10 +60,30 @@ def index():
     return render_template("index.html", form=form, user=user)
 
 
-@app.route("/search-results/<query>", methods=["GET"])
+
+@app.route("/search-results/<query>", methods=["GET", "POST"])
 def query_results(query):
     results = client.search(query)
-    return render_template("query.html", results=results)
+    form = UserReviewForm()
+    user = None
+    steamid = request.form.get('steamid')
+
+    user = User.objects(steamid=steamid).first()
+
+    if request.method == 'POST' and form.validate_on_submit() and current_user.is_authenticated:
+        if user:
+            review = Review(
+                commenter=current_user._get_current_object(),
+                reviewee=user,
+                content=form.text.data,
+                date=datetime.now()
+            )
+            review.save()
+            flash('Your review has been posted.')
+
+    reviews = Review.objects(reviewee=user)
+
+    return render_template("query.html", results=results, reviews=reviews, form=form)
 
 @app.route('/login')
 def login():
@@ -109,11 +136,12 @@ def account():
         return redirect(url_for('login'))
 
 
-@app.route("/user/<steamid>")
+@app.route("/user/<steamid>",  methods=["GET", "POST"])
 def userprofile(steamid):
     if current_user.is_authenticated and steamid == current_user['steamid']:
         return redirect(url_for('account'))
     user = User.objects(steamid=steamid).first() 
+    
     sorted_games = sorted(user.games, key=lambda game: int(game['playtime_hours']), reverse=True)
     has_favorites = False
     for game in sorted_games:
