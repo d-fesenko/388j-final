@@ -7,7 +7,7 @@
     
     {% if current_user.is_authenticated %}
     <div class="flex items-center">
-        <a href="{{ url_for('account') }}"><img src="{{ user['avatar'] }}" class="size-8 rounded-full mr-2"></a>
+        <a href="{{ url_for('account') }}"><img src="{{ current_user['avatar'] }}" class="size-8 rounded-full mr-2"></a>
         <a class="font-bold text-white my-5 mr-5 ml-0 navlink" href="{{ url_for('account') }}">Your Profile</a>
         <a class="font-bold my-5 mr-5 ml-0 navlink !bg-red-400/20 hover:!bg-red-500/50 !text-red-400 hover:!text-red-300" href="{{ url_for('logout') }}">Logout</a>
     </div>
