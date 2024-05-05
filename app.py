@@ -11,7 +11,11 @@ from forms import SearchForm, FavoritesForm, create_favorites_form, UserReviewFo
 from client import SteamProfileClient
 
 from utils import get_steam_games, get_items_equipped, get_steam_level
+from bson.objectid import ObjectId
 
+
+def current_time() -> str:
+    return datetime.now().strftime("%B %d, %Y at %H:%M:%S")
 
 db = MongoEngine()
 login_manager = LoginManager()
@@ -41,14 +45,17 @@ class User(db.Document, UserMixin):
     def get_id(self):
         return str(self.id)
     
+@login_manager.user_loader
+def load_user(user_id):
+    return User.objects(pk=user_id).first()
+    
 class Review(db.Document):
     commenter = db.ReferenceField(User, required=True)
-    reviewee = db.ReferenceField(User, required=True)
+    reviewee = db.StringField(required=True)
     content = db.StringField(required=True, min_length=5, max_length=500)
-    date = db.StringField(default=datetime)
+    date = db.StringField(required=True)
 
 client = SteamProfileClient(db, User.objects())
-
 
 @app.route('/', methods=["GET", "POST"])
 def index():
@@ -64,26 +71,8 @@ def index():
 @app.route("/search-results/<query>", methods=["GET", "POST"])
 def query_results(query):
     results = client.search(query)
-    form = UserReviewForm()
-    user = None
-    steamid = request.form.get('steamid')
 
-    user = User.objects(steamid=steamid).first()
-
-    if request.method == 'POST' and form.validate_on_submit() and current_user.is_authenticated:
-        if user:
-            review = Review(
-                commenter=current_user._get_current_object(),
-                reviewee=user,
-                content=form.text.data,
-                date=datetime.now()
-            )
-            review.save()
-            flash('Your review has been posted.')
-
-    reviews = Review.objects(reviewee=user)
-
-    return render_template("query.html", results=results, reviews=reviews, form=form)
+    return render_template("query.html", results=results)
 
 @app.route('/login')
 def login():
@@ -148,7 +137,22 @@ def userprofile(steamid):
         if game['is_favorite']:
             has_favorites = True
             break
-    return render_template('user_profile.html', user=user, sorted_games=sorted_games, has_favorites = has_favorites)
+    new_id = ObjectId()
+    form = UserReviewForm()
+    steamid = request.form.get('steamid')
+    if request.method == 'POST' and form.validate_on_submit() and current_user.is_authenticated:
+        if user:
+            review = Review(
+                commenter=current_user._get_current_object(),
+                reviewee=user.name,
+                content=form.text.data,
+                date=current_time()
+            )
+            review.save()
+            flash('Your review has been posted.')
+
+    reviews = Review.objects(reviewee=str(user.name))
+    return render_template('user_profile.html', form=form, reviews=list(reviews), user=user, sorted_games=sorted_games, has_favorites = has_favorites)
 
 @app.route('/process-openid')
 def process_openid():
@@ -209,7 +213,3 @@ def process_openid():
                 return redirect(url_for('index'))
             
     return "Error: Unable to validate your request" #This should prolly never happen
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.objects(pk=user_id).first()
