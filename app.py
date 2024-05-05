@@ -66,7 +66,7 @@ def login():
     login_url_params = {
         'openid.ns': 'http://specs.openid.net/auth/2.0',
         'openid.mode': 'checkid_setup',
-        'openid.return_to': 'http://localhost:5000/process-openid',
+        'openid.return_to': url_for('process_openid', _external=True),
         'openid.realm': request.url_root,
         'openid.identity': 'http://specs.openid.net/auth/2.0/identifier_select',
         'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select',
@@ -77,7 +77,9 @@ def login():
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('index'))
+    resp = redirect(url_for('index'))
+    resp.set_cookie('session', "", expires=0)
+    return resp
 
 @app.route('/account', methods=['GET', 'POST'])
 def account():
