@@ -81,7 +81,7 @@
   </div>
 
   <div>
-    <form method="POST" action="{{ url_for('account') }}">
+    <form method="POST" action="{{ url_for('logins.account') }}">
       {{ form.hidden_tag() }}
       {{ form.csrf_token }}
 
@@ -174,7 +174,7 @@
               </button>
           </div>
           <!-- Modal body -->
-          <form method="POST" action="{{ url_for('account') }}">
+          <form method="POST" action="{{ url_for('logins.account') }}">
             {{ preferencesform.csrf_token }}
 
             <div class="items-center px-4 py-3">

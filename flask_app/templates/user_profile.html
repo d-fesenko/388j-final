@@ -138,7 +138,7 @@
         <li class="review flex gap-2 mr-2">
           <img class="h-20 w-20 rounded-full" src="{{ review.commenter.avatar }}" alt="" />
           <div class="w-full">
-            <a href="{{ url_for('userprofile', steamid=review.commenter.steamid)}}"><p class="commenter-name text-white font-extrabold">{{ review.commenter.name }}</p></a>
+            <a href="{{ url_for('users.userprofile', steamid=review.commenter.steamid)}}"><p class="commenter-name text-white font-extrabold">{{ review.commenter.name }}</p></a>
             <p class="review-date text-xs text-gray-400">{{ review.date }}</span>
             <p class="review-content text-white">{{ review.content }}</p>
           </div>

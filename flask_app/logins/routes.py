@@ -1,88 +1,36 @@
-from datetime import datetime
-from flask import Flask, url_for, session, request, redirect, jsonify, render_template, flash
+from flask import Blueprint, redirect, url_for, render_template, flash, request
 from flask_login import current_user, login_required, login_user, logout_user, LoginManager
-from flask_login import UserMixin
-from flask_mongoengine import MongoEngine
+from flask import Flask, url_for, session, request, redirect, jsonify, render_template, flash
+from urllib.parse import urlencode
+from werkzeug.utils import secure_filename
+from ..forms import SearchForm, create_favorites_form, PreferencesForm
+from ..utils import get_steam_games, get_items_equipped, get_steam_level
+from ..config import STEAM_API_KEY
 import requests
 import re
-from urllib.parse import urlencode
-from config import STEAM_API_KEY, SECRET_KEY, MONGODB_HOST
-from forms import SearchForm, FavoritesForm, create_favorites_form, UserReviewForm, PreferencesForm
-from client import SteamProfileClient
-
-from utils import get_steam_games, get_items_equipped, get_steam_level
-from bson.objectid import ObjectId
+from ..models import User
 
 
-def current_time() -> str:
-    return datetime.now().strftime("%B %d, %Y at %H:%M:%S")
+logins = Blueprint("logins", __name__)
 
-db = MongoEngine()
-login_manager = LoginManager()
-
-
-app = Flask(__name__)
-
-app.config['SECRET_KEY'] = SECRET_KEY
-app.config['MONGODB_HOST'] = MONGODB_HOST
-
-    
-db.init_app(app)
-login_manager.init_app(app)
-
-class User(db.Document, UserMixin):
-    steamid = db.StringField(required = True)
-    name = db.StringField(required = True)
-    avatar = db.StringField(required = True)
-    avatar_frame = db.StringField()
-    profile_background = db.StringField()
-    is_background_animated = db.BooleanField()
-    level = db.StringField()
-    games = db.ListField()
-    preferences = db.DictField()
-
-    # Implement the get_id method required by Flask-Login
-    def get_id(self):
-        return str(self.id)
-    
-@login_manager.user_loader
-def load_user(user_id):
-    return User.objects(pk=user_id).first()
-    
-class Review(db.Document):
-    commenter = db.ReferenceField(User, required=True)
-    reviewee = db.StringField(required=True)
-    content = db.StringField(required=True, min_length=5, max_length=500)
-    date = db.StringField(required=True)
-
-client = SteamProfileClient(db, User.objects())
-
-@app.route('/', methods=["GET", "POST"])
+@logins.route('/', methods=["GET", "POST"])
 def index():
     form = SearchForm()
     user = current_user
     if form.validate_on_submit():
-        return redirect(url_for("query_results", query=form.search_query.data))
+        return redirect(url_for('users.query_results', query=form.search_query.data)) #this line causes error
 
     return render_template("index.html", form=form, user=user)
 
-
-
-@app.route("/search-results/<query>", methods=["GET", "POST"])
-def query_results(query):
-    results = client.search(query)
-
-    return render_template("query.html", results=results)
-
-@app.route('/login')
-def login():
+@logins.route('/login')
+def log_in():
     if current_user.is_authenticated:
-        return redirect(url_for('index')) #this should probably redirect to the account page, once we make one 
+        return redirect(url_for('logins.index'))
     
     login_url_params = {
         'openid.ns': 'http://specs.openid.net/auth/2.0',
         'openid.mode': 'checkid_setup',
-        'openid.return_to': url_for('process_openid', _external=True),
+        'openid.return_to': url_for('logins.process_openid', _external=True),
         'openid.realm': request.url_root,
         'openid.identity': 'http://specs.openid.net/auth/2.0/identifier_select',
         'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select',
@@ -90,14 +38,14 @@ def login():
     steam_login_url = 'https://steamcommunity.com/openid/login?' + urlencode(login_url_params)
     return redirect(steam_login_url)
 
-@app.route('/logout')
+@logins.route('/logout')
 def logout():
     session.clear()
-    resp = redirect(url_for('index'))
+    resp = redirect(url_for('logins.index'))
     resp.set_cookie('session', "", expires=0)
     return resp
 
-@app.route('/account', methods=['GET', 'POST'])
+@logins.route('/account', methods=['GET', 'POST'])
 def account():
     if current_user.is_authenticated:
 
@@ -137,38 +85,9 @@ def account():
 
         return render_template('account.html', user=user, sorted_games=sorted_games, form=form, preferencesform=preferencesform)
     else:
-        return redirect(url_for('login'))
-
-
-@app.route("/user/<steamid>",  methods=["GET", "POST"])
-def userprofile(steamid):
-    if current_user.is_authenticated and steamid == current_user['steamid']:
-        return redirect(url_for('account'))
-    user = User.objects(steamid=steamid).first() 
+        return redirect(url_for('logins.log_in'))
     
-    sorted_games = sorted(user.games, key=lambda game: int(game['playtime_hours']), reverse=True)
-    has_favorites = False
-    for game in sorted_games:
-        if game['is_favorite']:
-            has_favorites = True
-            break
-    form = UserReviewForm()
-    steamid = request.form.get('steamid')
-    if request.method == 'POST' and form.validate_on_submit() and current_user.is_authenticated:
-        if user:
-            review = Review(
-                commenter=current_user._get_current_object(),
-                reviewee=user.name,
-                content=form.text.data,
-                date=current_time()
-            )
-            review.save()
-            flash('Your review has been posted.')
-
-    reviews = Review.objects(reviewee=str(user.name))
-    return render_template('user_profile.html', form=form, reviews=list(reviews), user=user, sorted_games=sorted_games, has_favorites = has_favorites)
-
-@app.route('/process-openid')
+@logins.route('/process-openid')
 def process_openid():
     # Extract the necessary parameters from query string
     openid_params = {
@@ -233,6 +152,6 @@ def process_openid():
                     
                     new_user.save() 
                     login_user(new_user)
-                return redirect(url_for('index'))
+                return redirect(url_for('logins.index'))
             
     return "Error: Unable to validate your request" #This should prolly never happen
