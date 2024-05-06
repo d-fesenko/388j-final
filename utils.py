@@ -22,7 +22,7 @@ def get_items_equipped(api_key, steam_id):
     avatarframeurl = data.get('response', {}).get('avatar_frame', {}).get('image_small', "")
 
     
-    avatarframe = f"https://cdn.akamai.steamstatic.com/steamcommunity/public/images/{avatarframeurl}"
+    avatarframe = f"https://cdn.akamai.steamstatic.com/steamcommunity/public/images/{avatarframeurl}" if avatarframeurl != "" else ""
 
     return {
         "isbackgroundanimated": isbackgroundanimated,

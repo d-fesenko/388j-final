@@ -7,7 +7,7 @@ import requests
 import re
 from urllib.parse import urlencode
 from config import STEAM_API_KEY, SECRET_KEY, MONGODB_HOST
-from forms import SearchForm, FavoritesForm, create_favorites_form, UserReviewForm
+from forms import SearchForm, FavoritesForm, create_favorites_form, UserReviewForm, PreferencesForm
 from client import SteamProfileClient
 
 from utils import get_steam_games, get_items_equipped, get_steam_level
@@ -39,7 +39,7 @@ class User(db.Document, UserMixin):
     is_background_animated = db.BooleanField()
     level = db.StringField()
     games = db.ListField()
-    preferences = db.ListField()
+    preferences = db.DictField()
 
     # Implement the get_id method required by Flask-Login
     def get_id(self):
@@ -105,6 +105,11 @@ def account():
         sorted_games = sorted(user.games, key=lambda game: int(game['playtime_hours']), reverse=True)
 
         form = create_favorites_form(sorted_games)
+        preferencesform = PreferencesForm(
+        game_library_privacy=current_user.preferences.get('game_library_privacy', 'private'),
+        playtime_privacy=current_user.preferences.get('playtime_privacy', 'public'),
+        display_profile_background=current_user.preferences.get('display_profile_background', 'yes')
+    )
 
 
         if form.validate_on_submit():
@@ -119,8 +124,18 @@ def account():
             current_user.save()
 
             flash('Favorites updated!')
+        
+        if preferencesform.validate_on_submit():
+            user.preferences = {
+                "game_library_privacy": preferencesform.game_library_privacy.data,
+                "playtime_privacy": preferencesform.playtime_privacy.data,
+                "display_profile_background": preferencesform.display_profile_background.data
+            }
 
-        return render_template('account.html', user=user, sorted_games=sorted_games, form=form)
+            
+            current_user.save()
+
+        return render_template('account.html', user=user, sorted_games=sorted_games, form=form, preferencesform=preferencesform)
     else:
         return redirect(url_for('login'))
 
@@ -137,7 +152,6 @@ def userprofile(steamid):
         if game['is_favorite']:
             has_favorites = True
             break
-    new_id = ObjectId()
     form = UserReviewForm()
     steamid = request.form.get('steamid')
     if request.method == 'POST' and form.validate_on_submit() and current_user.is_authenticated:
@@ -188,7 +202,10 @@ def process_openid():
                 if existing_user:
                     existing_user.name = userData['personaname']
                     existing_user.avatar = userData['avatarfull']
-                    existing_user.games = games
+                    existing_games = [game['appid'] for game in existing_user.games]
+                    for game in games:
+                        if game['appid'] not in existing_games:
+                            existing_user.games.append(game)
                     existing_user.profile_background = profile_background
                     existing_user.is_background_animated = is_background_animated
                     existing_user.avatar_frame = avatar_frame
@@ -206,7 +223,13 @@ def process_openid():
                         profile_background = profile_background, 
                         is_background_animated = is_background_animated, 
                         level=level, 
-                        avatar_frame=avatar_frame)
+                        avatar_frame=avatar_frame,
+                        preferences = { #default preferences
+                            "game_library_privacy": "public",
+                            "playtime_privacy": "public",
+                            "display_profile_background": "yes"
+                        }
+                        )
                     
                     new_user.save() 
                     login_user(new_user)

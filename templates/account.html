@@ -1,7 +1,7 @@
 {% extends "header.html" %}
 {% block content %}
 
-{% if user['profile_background'] %}
+{% if user['profile_background'] and user['preferences']['display_profile_background'] == "yes"%}
 {% if user['is_background_animated'] %}
 <video autoplay loop muted id="video-background" class="-z-10 bg-fixed">
   <source src="{{ user['profile_background'] }}" type="video/mp4">
@@ -40,7 +40,7 @@
       <img src="{{ user['avatar'] }}" class="absolute w-full h-full object-cover" alt="Avatar">
       
       <!-- Avatar frame, conditionally displayed if exists -->
-      {% if user['avatar_frame'] %}
+      {% if user['avatar_frame'] != "" %}
       <img src="{{ user['avatar_frame'] }}" class="absolute w-full h-full object-cover scale-125" alt="Avatar Frame">
       {% endif %}
   </div>
@@ -67,6 +67,17 @@
       </span>
   </p>
     <p class="text-xs text-gray-400">ID: {{ user['steamid'] }}</p>
+
+    <script>
+      function toggleModal() {
+        var modal = document.getElementById('preferencesModal');
+        modal.classList.toggle('hidden');
+    }
+    </script>
+
+    <button onclick="toggleModal()" class="btn bg-gray-500 hover:bg-gray-600 rounded-lg text-white px-2 mt-5"><i class="fa-solid fa-pencil"></i> Edit Preferences</button>
+
+
   </div>
 
   <div>
@@ -75,8 +86,15 @@
       {{ form.csrf_token }}
 
       <div class="flex items-center"> <!-- Flex container with alignment -->
-        <p class="text-2xl font-extrabold text-white pb-2 mr-5">Your Game Library</p>
-        {{ form.submit(class="btn bg-green-500 hover:bg-green-600 rounded-lg text-white px-2 hidden", id="updatebutton") }}
+        <p class="text-2xl font-extrabold text-white pb-2 mr-5">Your Game Library</p> 
+        <span class="text-gray-500">
+        {% if user['preferences']['game_library_privacy'] == "private" %}
+        <i class="fa-solid fa-lock"></i> Private
+        {% else %}
+        <i class="fa-solid fa-lock-open"></i> Public
+        {% endif %}
+        </span>
+        {{ form.submit(class="btn bg-green-500 hover:bg-green-600 rounded-lg text-white px-2 ml-2 hidden", id="updatebutton") }}
       
       </div>
       
@@ -143,6 +161,42 @@
 </div>
 </form>
 
+</div>
+
+<div id="preferencesModal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden">
+  <!-- Modal content -->
+  <div class="relative p-5 border w-96 shadow-lg rounded-md bg-white">
+      <div class="mt-3 text-center">
+          <div class="mx-auto flex items-center justify-between">
+              <h3 class="text-lg leading-6 font-extrabold text-gray-900">Edit Preferences</h3>
+              <button onclick="toggleModal()" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center">
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+              </button>
+          </div>
+          <!-- Modal body -->
+          <form method="POST" action="{{ url_for('account') }}">
+            {{ preferencesform.csrf_token }}
+
+            <div class="items-center px-4 py-3">
+              
+              <label for="game_library_privacy" class="font-bold mr-2">{{ preferencesform.game_library_privacy.label }}</label>
+              {{ preferencesform.game_library_privacy(class="form-control") }}
+              <br>
+
+              <label for="playtime_privacy" class="font-bold mr-2">{{ preferencesform.playtime_privacy.label }}</label>
+              {{ preferencesform.playtime_privacy(class="form-control") }}
+              <br>
+
+              <label for="display_profile_background" class="font-bold mr-2">{{ preferencesform.display_profile_background.label }}</label>
+              {{ preferencesform.display_profile_background(class="form-control") }}
+
+              {{ preferencesform.submit(class=" mt-5 px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500") }}
+          </div>
+          </form>
+          <!-- Modal footer -->
+          
+      </div>
+  </div>
 </div>
 </body>
 {% endblock %}

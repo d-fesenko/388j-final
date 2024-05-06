@@ -1,7 +1,7 @@
 {% extends "header.html" %}
 {% block content %}
 
-{% if user['profile_background'] %}
+{% if user['profile_background'] and user['preferences']['display_profile_background'] == 'yes' %}
 {% if user['is_background_animated'] %}
 <video autoplay loop muted id="video-background" class="-z-10 bg-fixed">
   <source src="{{ user['profile_background'] }}" type="video/mp4">
@@ -31,7 +31,7 @@
 {% endif %}
 
 <body class="pb-8">
-<div class="max-w-5xl mx-auto rounded-2xl overflow-hidden shadow-lg mt-5 flex pt-5" style="background: linear-gradient(to bottom, rgba(15, 23, 42, 0.9), rgba(14, 46, 89, 0.9));">
+<div class="max-w-8xl mx-auto rounded-2xl overflow-hidden shadow-lg mt-5 flex pt-5" style="background: linear-gradient(to bottom, rgba(15, 23, 42, 0.9), rgba(14, 46, 89, 0.9));">
 
   <!-- User Info Container -->
   <div class="flex flex-col items-center justify-center p-5" style="width:400px;">
@@ -84,7 +84,7 @@
   <p class="text-2xl font-extrabold text-white pb-2">{{ user['name'] }}'s Game Library</p>
   <!-- Games List Container -->
   <div class="results-container flex flex-col overflow-y-auto mr-10 bg-gray-300 rounded-xl bg-opacity-10 h-lvh pl-5 mb-5" style="max-height: 500px; width: 700px;">
-    
+    {% if user['preferences']['game_library_privacy'] == 'public' %}
     {% if sorted_games %}
     {% for game in sorted_games %}
     <a href="https://store.steampowered.com/app/{{ game['appid'] }}" target="_blank">
@@ -94,7 +94,9 @@
           <img src="https://cdn.akamai.steamstatic.com/steam/apps/{{game['appid']}}/capsule_184x69.jpg" class="h-10 object-cover" alt="Game Icon">
           <div class="flex flex-col justify-center">
             <p class="text-white text-md font-extrabold">{{ game['name'] }}
+              {% if user['preferences']['playtime_privacy'] == 'public' %}
               <span class="text-gray-300 text-xs font-semibold">Playtime: {{ game['playtime_hours'] }} hours</span></p>
+              {% endif %}
             <p class="text-xs text-white">{{ game['description'] }}</p>
           </div>
         </div>
@@ -103,56 +105,75 @@
     {% endfor %}
     {% else %}
     <div class="flex flex-col items-center justify-center text-gray-300 h-lvh">
-    <p>User's game library is private</p>
+
+        <i class="fa-solid fa-triangle-exclamation fa-3x"></i>
+      <p>User's game library could not be retrieved</p>
+      <p class="text-xs">(Set to "private" or "friends only" on Steam, or library is empty)</p>
+
     </div>
     {% endif %}
-  </div>
-</div>
 
-</div>
+    {% else %}
+      <div class="flex flex-col items-center justify-center text-gray-300 h-lvh">
 
-<div>
-  {% if current_user.is_authenticated %}
-      {# Movie review submission form #}
-      <div class="container mx-auto bg-blue-500">
-        <form method="POST" action="" class="review-form">
-          {{ form.csrf_token }}
-          <div class="form-group review-input" >
-            {{ form.text.label }} {{ form.text(class="form-content") }}
-            {% if form.text.errors %}
-              <div class="alert alert-warning" role="alert">
-                {% for error in form.text.errors %}
-                <span>{{ error }}</span>
-                {% endfor %}
-              </div>
-            {% endif %}
-          </div>
-          {{ form.submit(class="review-button") }}
-        </form>
+        <i class="fa-solid fa-lock fa-3x"></i>
+      <p>User's game library is private</p>
+
       </div>
     {% endif %}
   </div>
-  <div class="w-0 lg:w-96"></div>
+  
 </div>
+<div class="container mx-auto flex flex-col items-center justify-center">
 
-<div class="reviews bg-blue-900">
-    <h1 class="reviews-title"> Reviews
-      <small class="reviews-count"> {{ reviews | length }} reviews </small>
-    </h1>
-    <ul class="review-container">
+  <h1 class="reviews-title font-extrabold text-white text-2xl">{{user.name}}'s Reviews</h1>
+  <p class="reviews-count text-xs text-gray-400 mb-1"> {{ reviews | length }} reviews </p>
+
+<div class="flex flex-col overflow-y-auto mr-10 bg-gray-300 rounded-xl bg-opacity-10 h-lvh pl-5 mb-2" style="max-height: 350px; width: 500px;">
+    <ul class="review-container flex flex-col items-center justify-center">
+      
+        
       {% for review in reviews %}
-        <li class="review flex gap-2">
-          <img class="h-20 w-20 rounded-lg" src="data:image/png;base64,{{review.image}}" alt="" />
+      <div class="pl-2 pr-20 py-2 my-2 bg-gradient-to-t from-slate-800 to-slate-700 rounded-lg overflow-hidden" style="width: 97%;">
+        <li class="review flex gap-2 mr-2">
+          <img class="h-20 w-20 rounded-full" src="{{ review.commenter.avatar }}" alt="" />
           <div class="w-full">
-            <span class="review-date">{{ review.date }}</span>
-            <a class="review-commenter">
-              @{{ review.commenter.username }}
-            </a>
-            <p class="review-content">{{ review.content }}</p>
+            <a href="{{ url_for('userprofile', steamid=review.commenter.steamid)}}"><p class="commenter-name text-white font-extrabold">{{ review.commenter.name }}</p></a>
+            <p class="review-date text-xs text-gray-400">{{ review.date }}</span>
+            <p class="review-content text-white">{{ review.content }}</p>
           </div>
         </li>
+      </div>
       {% endfor %}
     </ul>
+    </div>
+    <div>
+      {% if current_user.is_authenticated %}
+          {# Movie review submission form #}
+          <div class="">
+            <form method="POST" action="" class="review-form">
+              {{ form.csrf_token }}
+              <p class="text-white">Leave a review!</p> 
+              <div class="form-group review-input" >
+                {{ form.text(class="form-content") }}
+                {% if form.text.errors %}
+                  <div class="alert alert-warning" role="alert">
+                    {% for error in form.text.errors %}
+                    <span>{{ error }}</span>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+              {{ form.submit(class="review-button btn bg-green-500 hover:bg-green-600 rounded-lg text-white px-2 mt-1") }}
+            </form>
+          </div>
+        {% else %}
+        <p class="text-white"><i class="fa-solid fa-circle-exclamation"></i> Must be logged in to post reviews!</p>
+        {% endif %}
+      </div>
+</div>
+
+</div>
 </div>
 </body>
 
